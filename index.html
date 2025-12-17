@@ -96,10 +96,7 @@
   </div>
 </div>
 
-<!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-<!-- Turn.js (open-source core) -->
 <script src="https://cdn.jsdelivr.net/gh/blasten/turn.js@master/turn.min.js"></script>
 
 <script>
@@ -110,11 +107,14 @@ const params = new URLSearchParams(window.location.search);
 const book = params.get("book") || DEFAULT_BOOK;
 
 const basePath = `books/${book}/`;
-const flipbook = document.getElementById("flipbook");
+const flipbookEl = document.getElementById("flipbook");
 
 // Load metadata
 fetch(basePath + "book.json")
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error("book.json not found");
+    return res.json();
+  })
   .then(meta => {
     document.getElementById("book-title").textContent = meta.title || "Untitled";
     document.getElementById("book-author").textContent = meta.author || "";
@@ -125,8 +125,10 @@ fetch(basePath + "book.json")
       document.getElementById("pdf-link").style.display = "none";
     }
   })
-  .catch(() => {
+  .catch(err => {
+    console.warn(err);
     document.getElementById("book-title").textContent = "Untitled Book";
+    document.getElementById("book-author").textContent = "";
     document.getElementById("pdf-link").style.display = "none";
   });
 
@@ -135,7 +137,7 @@ function loadPage(n) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error(`Missing: ${basePath}${n}.jpg`));
     img.src = `${basePath}${n}.jpg`;
   });
 }
@@ -146,19 +148,24 @@ function loadPage(n) {
   for (let i = 1; i <= MAX_PAGES; i++) {
     try {
       const img = await loadPage(i);
+
       const page = document.createElement("div");
       page.className = "page";
       page.appendChild(img);
-      flipbook.appendChild(page);
+      flipbookEl.appendChild(page);
+
       pages++;
-    } catch {
+    } catch (e) {
+      // Stop at the first missing page
       break;
     }
   }
 
-  if (!pages) {
-    flipbook.innerHTML = `<div style="color:white;text-align:center;padding:40px">
-      No pages found
+  // IMPORTANT: need at least 2 pages to flip
+  if (pages < 2) {
+    flipbookEl.innerHTML = `<div style="color:white;text-align:center;padding:40px">
+      Found ${pages} page(s). Turn.js needs at least 2 pages.<br/>
+      Check that <b>2.jpg</b> exists at <code>${basePath}</code> (case-sensitive).
     </div>`;
     return;
   }
@@ -166,7 +173,20 @@ function loadPage(n) {
   $("#flipbook").turn({
     width: 800,
     height: 500,
-    autoCenter: true
+    autoCenter: true,
+    gradients: true,
+    elevation: 50
+  });
+
+  // Click anywhere to turn (simple UX)
+  $("#flipbook").on("click", () => {
+    $("#flipbook").turn("next");
+  });
+
+  // Keyboard support
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") $("#flipbook").turn("next");
+    if (e.key === "ArrowLeft") $("#flipbook").turn("previous");
   });
 })();
 </script>
