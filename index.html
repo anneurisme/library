@@ -2,21 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Llorna's Books</title>
+<title>Llorna's Library</title>
 
 <style>
   body {
     margin: 0;
-    background: #222;
+    background: #1e1e1e;
+    font-family: system-ui, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
   }
 
+  .viewer {
+    width: 820px;
+    background: #111;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    overflow: hidden;
+  }
+
+  .top-bar {
+    background: #181818;
+    padding: 14px 20px;
+    border-bottom: 1px solid #333;
+  }
+
+  .title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .author {
+    color: #aaa;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
   #flipbook {
     width: 800px;
     height: 500px;
+    margin: 10px auto;
   }
 
   #flipbook .page {
@@ -28,32 +56,81 @@
     height: 100%;
     object-fit: contain;
   }
+
+  .bottom-bar {
+    background: #181818;
+    padding: 12px;
+    border-top: 1px solid #333;
+    text-align: center;
+  }
+
+  .pdf-btn {
+    background: #3b82f6;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-block;
+  }
+
+  .pdf-btn:hover {
+    background: #2563eb;
+  }
 </style>
 </head>
 <body>
 
-<div id="flipbook"></div>
+<div class="viewer">
+  <div class="top-bar">
+    <div class="title" id="book-title">Loading…</div>
+    <div class="author" id="book-author"></div>
+  </div>
 
-<script src="js/jquery.min.js"></script>
-<script src="js/turn.min.js"></script>
+  <div id="flipbook"></div>
+
+  <div class="bottom-bar">
+    <a id="pdf-link" class="pdf-btn" href="#" target="_blank" rel="noopener">
+      View the PDF
+    </a>
+  </div>
+</div>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- Turn.js (open-source core) -->
+<script src="https://cdn.jsdelivr.net/gh/blasten/turn.js@master/turn.min.js"></script>
 
 <script>
-// default book if no query string
-const DEFAULT_BOOK = "Book";
-// how many pages to try loading
+const DEFAULT_BOOK = "test";
 const MAX_PAGES = 50;
 
-// get ?book=demo
 const params = new URLSearchParams(window.location.search);
 const book = params.get("book") || DEFAULT_BOOK;
 
-// base path to images
 const basePath = `books/${book}/`;
 const flipbook = document.getElementById("flipbook");
 
-// try loading numbered images until one fails
-let pageCount = 0;
+// Load metadata
+fetch(basePath + "book.json")
+  .then(res => res.json())
+  .then(meta => {
+    document.getElementById("book-title").textContent = meta.title || "Untitled";
+    document.getElementById("book-author").textContent = meta.author || "";
 
+    if (meta.pdfUrl) {
+      document.getElementById("pdf-link").href = meta.pdfUrl;
+    } else {
+      document.getElementById("pdf-link").style.display = "none";
+    }
+  })
+  .catch(() => {
+    document.getElementById("book-title").textContent = "Untitled Book";
+    document.getElementById("pdf-link").style.display = "none";
+  });
+
+// Page loader
 function loadPage(n) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -64,6 +141,8 @@ function loadPage(n) {
 }
 
 (async function buildBook() {
+  let pages = 0;
+
   for (let i = 1; i <= MAX_PAGES; i++) {
     try {
       const img = await loadPage(i);
@@ -71,14 +150,16 @@ function loadPage(n) {
       page.className = "page";
       page.appendChild(img);
       flipbook.appendChild(page);
-      pageCount++;
+      pages++;
     } catch {
       break;
     }
   }
 
-  if (pageCount === 0) {
-    flipbook.innerHTML = `<div style="color:white">No pages found</div>`;
+  if (!pages) {
+    flipbook.innerHTML = `<div style="color:white;text-align:center;padding:40px">
+      No pages found
+    </div>`;
     return;
   }
 
