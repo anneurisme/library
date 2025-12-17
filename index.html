@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Llorna's Books</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  #flipbook {
+    width: 800px;
+    height: 500px;
+  }
+
+  #flipbook .page {
+    background: #fff;
+  }
+
+  #flipbook img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+</style>
+</head>
+<body>
+
+<div id="flipbook"></div>
+
+<script src="js/jquery.min.js"></script>
+<script src="js/turn.min.js"></script>
+
+<script>
+// default book if no query string
+const DEFAULT_BOOK = "Book";
+// how many pages to try loading
+const MAX_PAGES = 50;
+
+// get ?book=demo
+const params = new URLSearchParams(window.location.search);
+const book = params.get("book") || DEFAULT_BOOK;
+
+// base path to images
+const basePath = `books/${book}/`;
+const flipbook = document.getElementById("flipbook");
+
+// try loading numbered images until one fails
+let pageCount = 0;
+
+function loadPage(n) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = `${basePath}${n}.jpg`;
+  });
+}
+
+(async function buildBook() {
+  for (let i = 1; i <= MAX_PAGES; i++) {
+    try {
+      const img = await loadPage(i);
+      const page = document.createElement("div");
+      page.className = "page";
+      page.appendChild(img);
+      flipbook.appendChild(page);
+      pageCount++;
+    } catch {
+      break;
+    }
+  }
+
+  if (pageCount === 0) {
+    flipbook.innerHTML = `<div style="color:white">No pages found</div>`;
+    return;
+  }
+
+  $("#flipbook").turn({
+    width: 800,
+    height: 500,
+    autoCenter: true
+  });
+})();
+</script>
+
+</body>
+</html>
