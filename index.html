@@ -28,18 +28,44 @@
     background: #181818;
     padding: 14px 20px;
     border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .meta {
+    min-width: 0;
   }
 
   .title {
     color: #fff;
     font-size: 18px;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .author {
     color: #aaa;
     font-size: 13px;
     margin-top: 2px;
+  }
+
+  .pdf-btn {
+    background: #3b82f6;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .pdf-btn:hover {
+    background: #2563eb;
   }
 
   #flipbook {
@@ -58,44 +84,23 @@
     height: 100%;
     object-fit: contain;
   }
-
-  .bottom-bar {
-    background: #181818;
-    padding: 12px;
-    border-top: 1px solid #333;
-    text-align: center;
-  }
-
-  .pdf-btn {
-    background: #3b82f6;
-    color: #fff;
-    padding: 10px 18px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 500;
-    display: inline-block;
-  }
-
-  .pdf-btn:hover {
-    background: #2563eb;
-  }
 </style>
 </head>
 <body>
 
 <div class="viewer">
   <div class="top-bar">
-    <div class="title" id="book-title">Loading…</div>
-    <div class="author" id="book-author"></div>
+    <div class="meta">
+      <div class="title" id="book-title">Loading…</div>
+      <div class="author" id="book-author"></div>
+    </div>
+
+    <a id="pdf-link" class="pdf-btn" href="#" target="_blank" rel="noopener">
+      View PDF
+    </a>
   </div>
 
   <div id="flipbook"></div>
-
-  <div class="bottom-bar">
-    <a id="pdf-link" class="pdf-btn" href="#" target="_blank" rel="noopener">
-      View the PDF
-    </a>
-  </div>
 </div>
 
 <!-- jQuery -->
@@ -133,9 +138,10 @@ fetch(basePath + "book.json")
   .catch(() => {
     document.getElementById("book-title").textContent = "Untitled Book";
     document.getElementById("book-author").textContent = "";
+    document.getElementById("pdf-link").style.display = "none";
   });
 
-// Load pages
+// Page loader
 function loadPage(n) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -165,7 +171,7 @@ function loadPage(n) {
     flipbookEl.innerHTML = `
       <div style="color:white;text-align:center;padding:40px">
         Need at least 2 pages to flip.<br/>
-        Make sure <b>2.jpg</b> exists in <code>${basePath}</code>.
+        Check <b>2.jpg</b> exists in <code>${basePath}</code>.
       </div>`;
     return;
   }
